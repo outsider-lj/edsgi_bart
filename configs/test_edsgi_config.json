@@ -1,0 +1,17 @@
+{
+   "dataset_path" : "data/ed/ed_with_kg_clean.json",
+   "model" : "pipeline",
+   "dataset_cache" :  "./caches/ed_with_kg_clean_dataset_cache",
+   "model_checkpoint" : "bart-base/edsgi",
+   "result_path": "bart-base/edsgi",
+   "max_history" : 3,
+   "device" : "cuda",
+   "no_sample" : true,
+   "topic_max_length" : 30,
+   "final_max_length": 40,
+   "min_length" : 1,
+   "seed" : 42,
+   "temperature" : 1,
+   "top_k" : 5,
+   "top_p" : 0.9
+}
