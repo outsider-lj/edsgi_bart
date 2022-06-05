@@ -9,7 +9,7 @@ Install the required libraries (Python 3.6 | CUDA 11.4)
 ### Knowledge
 NRC_VAD http://saifmohammad.com/WebPages/nrc-vad.html
 
-Concept_Net
+Concept_Net https://github.com/commonsense/conceptnet5/wiki/Downloads
 
 ### Dataset
 
