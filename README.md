@@ -6,6 +6,9 @@
 
 Install the required libraries (Python 3.6 | CUDA 11.4)
 
+### BART
+https://huggingface.co/facebook/bart-base
+
 ### Knowledge
 NRC_VAD http://saifmohammad.com/WebPages/nrc-vad.html
 
