@@ -19,8 +19,11 @@ Concept_Net https://github.com/commonsense/conceptnet5/wiki/Downloads
 The preprocessed dataset is already provided as `/data/ed/ed_with_kg.json`. However, if you want to create the dataset yourself, you need run all the files in preprocessing.
 
 ### Training
-main taining file is train_edsgi.py, train twice. 
-in second time, modify optimizer and loss in train_edsgi.py; delete all tie_weight function and correct from_pretained method(line 1545) in modeling_edsgi_utils.py; modify model_checkpoint in train_edsgi_config.json
+The first is to train the file train_edsgi.py;
+
+The second step is to delete the tie_weight function and correct from_pretained method(line 1545) in modeling_edsgi_utils.py(load the step-generation model);
+
+Next is to train the train_edsgi_integ.py.
 
 ## Testing
 run test_edsgi.py
