@@ -20,9 +20,7 @@ The preprocessed dataset is already provided as `/data/ed/ed_with_kg.json`. Howe
 
 ### Training
 The first is to train the file train_edsgi.py;
-
 The second step is to delete the tie_weight function and correct from_pretained method(line 1545) in modeling_edsgi_utils.py(load the step-generation model);
-
 Next is to train the train_edsgi_integ.py.
 
 ## Testing
