@@ -1,7 +1,7 @@
 {
   "dataset_path": "data/ed/ed_with_kg_clean.json" ,
    "dataset_cache": "caches/ed_with_kg_clean_dataset_cache",
-   "model_checkpoint": "bart-base",
+   "model_checkpoint": "bart-base/edsgi",
    "num_candidates": 1,
    "do_lower_case": true,
    "max_history": 3,
@@ -23,5 +23,6 @@
    "local_rank": -1,
    "log_dir": "bart-base/edsgi",
    "n_special": 2,
-   "is_train": true
+   "is_train": true,
+ "is_integration":true
 }
