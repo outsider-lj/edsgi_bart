@@ -50,7 +50,6 @@ nrc=["<anger>","<anticipation>","<disgust>","<fear>","<joy>","<sadness>","<surpr
 for i,k in enumerate(nrc):
     NRC_CLASS[k]=i
 PAD_EMO_ID=NRC_CLASS["<other>"]
-
 def set_seed(config):
     random.seed(config.seed)
     np.random.seed(config.seed)
@@ -93,7 +92,7 @@ def average_distributed_scalar(scalar, config):
 
 
 def train():
-    config_file = "configs/train_edsgi_config.json"
+    config_file = "configs/train_edsgi_integ_config.json"
     config = Config.from_json_file(config_file)
 
     # logging is set to INFO (resp. WARN) for main (resp. auxiliary) process. logger.info => log main process only, logger.warning => log all processes
@@ -113,12 +112,12 @@ def train():
         emo_labels_dict[emo] = i
     set_seed(config)
     tokenizer = BartTokenizer.from_pretrained(config.model_checkpoint)
-    tokenizer.set_special_tokens(SPECIAL_TOKENS) # not use in stage two
+    # tokenizer.set_special_tokens(SPECIAL_TOKENS) # not use in stage two
     model = StepBartForDialogueGeneration  # (bart_config)
     model = model.from_pretrained(config.model_checkpoint)
-    model.resize_token_embeddings(len(tokenizer)) #not use in stage two
+    # model.resize_token_embeddings(len(tokenizer)) #not use in stage two
     model.to(config.device)
-    optimizer = AdamW(model.parameters(), lr=config.lr) #model.integration.parameters in stage two
+    optimizer = AdamW(model.integration.parameters(), lr=config.lr) #model.integration.parameters in stage two
     # Prepare model for FP16 and distributed training if needed (order is important, distributed should be the last)
     if config.fp16:
         from apex import amp  # Apex is only required if we use fp16 training
@@ -151,7 +150,7 @@ def train():
                                                         decoder_attention_mask_second=decoder_attention_mask_second,
                                                         decoder_attention_mask_final=decoder_attention_mask_final,
                                                        is_train=True,
-                                                       is_integrate=False,
+                                                       is_integrate=True,
                                                         hard_attention=False,
                                                        )
         lm_logits_first = output_first
@@ -162,15 +161,15 @@ def train():
         lm_logits_second_flat_shifted = lm_logits_second.contiguous().view(-1, lm_logits_second.size(-1))
         lm_labels_second_flat_shifted = lm_label_second.contiguous().view(-1)
         loss2 = torch.nn.CrossEntropyLoss(ignore_index=PAD_TOKEN_ID)(lm_logits_second_flat_shifted, lm_labels_second_flat_shifted)
-        # lm_logits_final=output_final
-        # lm_logits_final_flat_shifted = lm_logits_final.contiguous().view(-1, lm_logits_final.size(-1))
-        # lm_labels_final_flat_shifted = lm_label_final.contiguous().view(-1)
-        # loss_final = torch.nn.CrossEntropyLoss(ignore_index=PAD_TOKEN_ID)(lm_logits_final_flat_shifted,lm_labels_final_flat_shifted)
+        lm_logits_final=output_final
+        lm_logits_final_flat_shifted = lm_logits_final.contiguous().view(-1, lm_logits_final.size(-1))
+        lm_labels_final_flat_shifted = lm_label_final.contiguous().view(-1)
+        loss_final = torch.nn.CrossEntropyLoss(ignore_index=PAD_TOKEN_ID)(lm_logits_final_flat_shifted,lm_labels_final_flat_shifted)
         emo_logits_flat_shifted = emo_logits.contiguous().view(-1, emo_logits.size(-1))
         emo_labels_flat_shifted = emo_label.contiguous().view(-1)
         loss_emo = torch.nn.CrossEntropyLoss()(emo_logits_flat_shifted,emo_labels_flat_shifted)
-        loss = loss_emo +0.5* loss1 + 0.5*loss2#stage one
-        # loss=loss_final # stage two
+        # loss = loss_emo +0.4* loss1 + 0.4*loss2#stage one
+        loss=loss_final # stage two
         if config.fp16:
             with amp.scale_loss(loss, optimizer) as scaled_loss:
                 scaled_loss.backward()
@@ -205,9 +204,9 @@ def train():
                                                              decoder_attention_mask_first=decoder_attention_mask_first,
                                                              decoder_attention_mask_second=decoder_attention_mask_second,
                                                              decoder_attention_mask_final=decoder_attention_mask_final,
-                                                                        is_integrate=False,
+                                                                        is_integrate=True,
                                                            is_train=True,
-                                                            hard_attention=False,
+                                                            hard_attention=False
                                                            )
             lm_logits_first = output_first
             lm_logits_first_flat_shifted = lm_logits_first.contiguous().view(-1, lm_logits_first.size(-1))
@@ -215,13 +214,13 @@ def train():
             lm_logits_second = output_second
             lm_logits_second_flat_shifted = lm_logits_second.contiguous().view(-1, lm_logits_second.size(-1))
             lm_labels_second_flat_shifted = lm_label_second.contiguous().view(-1)
-            # lm_logits_final = output_final
-            # lm_logits_final_flat_shifted = lm_logits_final.contiguous().view(-1, lm_logits_final.size(-1))
-            # lm_labels_final_flat_shifted = lm_label_final.contiguous().view(-1)
+            lm_logits_final = output_final
+            lm_logits_final_flat_shifted = lm_logits_final.contiguous().view(-1, lm_logits_final.size(-1))
+            lm_labels_final_flat_shifted = lm_label_final.contiguous().view(-1)
             emo_logits_flat_shifted = emo_logits.contiguous().view(-1, emo_logits.size(-1))
             emo_labels_flat_shifted = emo_label.contiguous().view(-1)
-            return (lm_logits_first_flat_shifted, lm_logits_second_flat_shifted,emo_logits_flat_shifted), (
-            lm_labels_first_flat_shifted, lm_labels_second_flat_shifted,emo_labels_flat_shifted)
+            return (lm_logits_first_flat_shifted, lm_logits_second_flat_shifted,lm_logits_final_flat_shifted,emo_logits_flat_shifted), (
+            lm_labels_first_flat_shifted, lm_labels_second_flat_shifted,lm_labels_final_flat_shifted,emo_labels_flat_shifted)
 
     trainer = Engine(update)
     evaluator = Engine(inference)
@@ -239,27 +238,27 @@ def train():
         evaluator.add_event_handler(Events.EPOCH_STARTED, lambda engine: valid_sampler.set_epoch(engine.state.epoch))
 
     # Linearly decrease the learning rate from lr to zero
-    scheduler = PiecewiseLinear(optimizer, "lr", [(4* len(train_loader), config.lr), (config.n_epochs * len(train_loader), 0.0)])
-    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+    # scheduler = PiecewiseLinear(optimizer, "lr", [(10* len(train_loader), config.lr), (config.n_epochs * len(train_loader), 0.0)])
+    # trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
     # Prepare metrics - note how we compute distributed metrics
     RunningAverage(output_transform=lambda x: x[0]).attach(trainer, "loss")
     RunningAverage(output_transform=lambda x: x[1]).attach(trainer, "loss_emo")
 
     metrics = {"nll1": Loss(torch.nn.CrossEntropyLoss(ignore_index=PAD_TOKEN_ID), output_transform=lambda x: (x[0][0], x[1][0])),
                "nll2": Loss(torch.nn.CrossEntropyLoss(ignore_index=PAD_TOKEN_ID), output_transform=lambda x: (x[0][1], x[1][1])),
-                # "nll3": Loss(torch.nn.CrossEntropyLoss(ignore_index=PAD_TOKEN_ID), output_transform=lambda x: (x[0][2], x[1][2])),
+                "nll3": Loss(torch.nn.CrossEntropyLoss(ignore_index=PAD_TOKEN_ID), output_transform=lambda x: (x[0][2], x[1][2])),
                "nllemo": Loss(torch.nn.CrossEntropyLoss(ignore_index=PAD_TOKEN_ID),
-                            output_transform=lambda x: (x[0][2], x[1][2])),
+                            output_transform=lambda x: (x[0][3], x[1][3])),
                # "precision":Precision(output_transform=lambda x: (x[0][4],x[1][4]),is_multilabel=True),
-               "accuracy": Accuracy(output_transform=lambda x: (x[0][2], x[1][2]))}
+               "accuracy": Accuracy(output_transform=lambda x: (x[0][3], x[1][3]))}
     metrics.update({"average_nll1": MetricsLambda(average_distributed_scalar, metrics["nll1"], config),
                     "average_nll2": MetricsLambda(average_distributed_scalar, metrics["nll2"], config),
-                    # "average_nll3": MetricsLambda(average_distributed_scalar, metrics["nll3"], config),
+                    "average_nll3": MetricsLambda(average_distributed_scalar, metrics["nll3"], config),
                     "average_nllemo": MetricsLambda(average_distributed_scalar, metrics["nllemo"], config),
                     "average_accuracy": MetricsLambda(average_distributed_scalar, metrics["accuracy"], config)})
     metrics["average_ppl1"] = MetricsLambda(math.exp, metrics["average_nll1"])
     metrics["average_ppl2"] = MetricsLambda(math.exp, metrics["average_nll2"])
-    # metrics["average_ppl3"] = MetricsLambda(math.exp, metrics["average_nll3"])
+    metrics["average_ppl3"] = MetricsLambda(math.exp, metrics["average_nll3"])
     # metrics["average_ppl"] = MetricsLambda(math.exp,(metrics["nll1"]+ metrics["nll2"]+metrics["nll3"])/3)
     for name, metric in metrics.items():
         metric.attach(evaluator, name)
