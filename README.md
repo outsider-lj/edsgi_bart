@@ -16,7 +16,7 @@ Concept_Net https://github.com/commonsense/conceptnet5/wiki/Downloads
 
 ### Dataset
 
-The preprocessed dataset is already provided as `/data/ed/ed_with_kg.json`. However, if you want to create the dataset yourself, you need run all the files in preprocessing.
+The preprocessed dataset is already provided as `/data/ed/ed_with_kg.json`(https://drive.google.com/drive/folders/1O2pJLl7iiua9xKdtXzXWYAqM_-9YBZEk). However, if you want to create the dataset yourself, you need run all the files in preprocessing.
 
 ### Training
 The first is to train the file train_edsgi.py;
