@@ -1,4 +1,5 @@
-# edsgi
+# EDSGI
+This repository is the implementation of paper：*Optimizing Empathetic Response by Generating and Integrating Emotion Feedback and Topic Discussion.*
 
 ## Usage
 
